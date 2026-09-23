@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频前 10 秒截图</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 12px;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      width: 100%;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .desc {
+      margin: 0 0 24px;
+      color: #666;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      flex: 0 0 auto;
+    }
+
+    .drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 110px;
+      border: 2px dashed #4f7cff;
+      border-radius: 16px;
+      background: #fff;
+      padding: 24px 24px;
+      text-align: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .drop-zone.dragover {
+      background: #eef3ff;
+      border-color: #2d5bff;
+    }
+
+    .drop-zone input {
+      display: none;
+    }
+
+    .hint {
+      color: #666;
+      margin-top: 10px;
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 18px 0 24px;
+      color: #2d5bff;
+    }
+
+    .error {
+      color: #d93025;
+    }
+
+    .result-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .video-preview {
+      display: none;
+      position: relative;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 0 0 16px;
+      padding: 12px 40px 12px 12px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .video-preview.show {
+      display: flex;
+    }
+
+    .mini-preview {
+      display: block;
+      width: 80px;
+      height: auto;
+      border-radius: 8px;
+      background: #ddd;
+      flex: 0 0 80px;
+    }
+
+    .video-preview-info {
+      min-width: 0;
+      color: #444;
+      line-height: 1.5;
+      padding-right: 6px;
+    }
+
+    .meta-line {
+      color: #666;
+    }
+
+    .info-trigger {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #eef3ff;
+      color: #2d5bff;
+      border: 1px solid #b9c8ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: default;
+      user-select: none;
+    }
+
+    .info-popup {
+      position: absolute;
+      top: 32px;
+      right: 10px;
+      width: 260px;
+      max-width: calc(100vw - 56px);
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(34, 34, 34, 0.96);
+      color: #fff;
+      line-height: 1.5;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 20;
+      white-space: normal;
+      word-break: break-all;
+    }
+
+    .info-trigger:hover + .info-popup,
+    .info-popup:hover {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .info-popup-line + .info-popup-line {
+      margin-top: 4px;
+    }
+
+    .result-item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .title-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .result-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .frame-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .frame-title {
+      display: inline-block;
+      color: #444;
+      cursor: default;
+    }
+
+    .frame-preview {
+      width: 80px;
+      flex: 0 0 80px;
+    }
+
+    .frame-preview .mini-preview {
+      width: 80px;
+      max-width: 80px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .preview-popup {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 260px;
+      padding: 8px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 10;
+    }
+
+    .title-wrap:hover .preview-popup {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .preview-popup img {
+      display: block;
+      width: 100%;
+      border-radius: 8px;
+      background: #ddd;
+    }
+
+    .download-btn {
+      display: inline-block;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      background: #2d5bff;
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .secondary-btn {
+      background: #fff;
+      color: #444;
+      border: 1px solid #d6dbe8;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 24px 16px 40px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .drop-zone {
+        min-height: 90px;
+        padding: 16px 16px;
+      }
+
+      .result-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .result-main {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-row">
+      <h1>视频前 10 秒截图工具</h1>
+      <div class="toolbar">
+        <button type="button" class="download-btn secondary-btn" id="clearCacheBtn">清除缓存</button>
+      </div>
+    </div>
+    <p class="desc">把视频拖进来，或者点击选择文件。上传后会自动截取前 10 秒的截图，并在下方提供下载按钮。</p>
+
+    <label class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="video/*">
+      <div>拖拽视频到这里</div>
+      <div class="hint">或者点击这里选择一个视频文件</div>
+    </label>
+
+    <div class="status" id="status"></div>
+    <div class="video-preview" id="videoPreview"></div>
+    <ul class="result-list" id="resultList"></ul>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const statusEl = document.getElementById('status');
+    const videoPreviewEl = document.getElementById('videoPreview');
+    const resultList = document.getElementById('resultList');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    let hasNativeSaveApi = false;
+
+    window.addEventListener('pywebviewready', function() {
+      hasNativeSaveApi = true;
+    });
+
+    function hasNativeApi(methodName) {
+      return !!(
+        window.pywebview &&
+        window.pywebview.api &&
+        typeof window.pywebview.api[methodName] === 'function'
+      );
+    }
+
+    function setStatus(text, isError) {
+      statusEl.textContent = text || '';
+      statusEl.className = isError ? 'status error' : 'status';
+    }
+
+    function processNativeResult(result) {
+      if (!result) {
+        throw new Error('处理失败');
+      }
+      if (result.cancelled) {
+        setStatus('已取消选择文件');
+        return;
+      }
+      if (!result.ok) {
+        throw new Error(result.error || '处理失败');
+      }
+
+      setStatus('处理完成：' + result.file_name);
+      renderFrames(result);
+    }
+
+    function pickVideoInApp() {
+      if (!hasNativeApi('pick_video')) {
+        fileInput.click();
+        return;
+      }
+
+      setStatus('请选择一个视频文件...');
+      resetResults();
+
+      window.pywebview.api.pick_video()
+        .then(processNativeResult)
+        .catch(function(error) {
+          setStatus(error.message, true);
+        });
+    }
+
+    function fallbackDownload(url, filename) {
+      return fetch(url)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('下载失败');
+          }
+          return response.blob();
+        })
+        .then(function(blob) {
+          const objectUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(objectUrl);
+        });
+    }
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildInfoPopup(lines) {
+      const safeLines = Array.isArray(lines) ? lines : [];
+      return safeLines.map(function(line) {
+        return '<div class="info-popup-line">' + escapeHtml(line) + '</div>';
+      }).join('');
+    }
+
+    function renderVideoPreview(data) {
+      if (!data.cover_url) {
+        videoPreviewEl.className = 'video-preview';
+        videoPreviewEl.innerHTML = '';
+        return;
+      }
+
+      videoPreviewEl.className = 'video-preview show';
+      videoPreviewEl.innerHTML =
+        '<img class="mini-preview" src="' + data.cover_url + '" alt="视频预览图">' +
+        '<div class="video-preview-info">' +
+          '<div>上传视频预览</div>' +
+          '<div>' + escapeHtml(data.file_name) + '</div>' +
+          '<div class="meta-line">大小：' + (data.video_size_text || '未知') + '</div>' +
+          '<div class="meta-line">尺寸：' + (data.video_resolution_text || '未知') + '</div>' +
+        '</div>' +
+        '<div class="info-trigger">!</div>' +
+        '<div class="info-popup">' + buildInfoPopup(data.video_info_lines) + '</div>';
+    }
+
+    function resetResults() {
+      resultList.innerHTML = '';
+      videoPreviewEl.className = 'video-preview';
+      videoPreviewEl.innerHTML = '';
+    }
+
+    function clearCache() {
+      setStatus('正在清除缓存...');
+      clearCacheBtn.disabled = true;
+
+      fetch('/clear-cache', {
+        method: 'POST'
+      })
+        .then(function(response) {
+          return response.json().then(function(data) {
+            if (!response.ok || !data.ok) {
+              throw new Error(data.error || '清除缓存失败');
+            }
+            return data;
+          });
+        })
+        .then(function() {
+          resetResults();
+          setStatus('缓存已清除');
+        })
+        .catch(function(error) {
+          setStatus(error.message, true);
+        })
+        .finally(function() {
+          clearCacheBtn.disabled = false;
+        });
+    }
+
+    function saveFrame(frame) {
+      setStatus('正在保存截图...');
+
+      if (hasNativeSaveApi && hasNativeApi('save_screenshot')) {
+        window.pywebview.api.save_screenshot(frame.job_id, frame.name)
+          .then(function(result) {
+            if (!result) {
+              throw new Error('保存失败');
+            }
+            if (result.cancelled) {
+              setStatus('已取消保存');
+              return;
+            }
+            if (!result.ok) {
+              throw new Error(result.error || '保存失败');
+            }
+            setStatus('截图已保存到：' + result.path);
+          })
+          .catch(function(error) {
+            setStatus(error.message, true);
+          });
+        return;
+      }
+
+      fallbackDownload(frame.download_url, frame.name)
+        .then(function() {
+          setStatus('截图已开始下载：' + frame.name);
+        })
+        .catch(function(error) {
+          setStatus(error.message, true);
+        });
+    }
+
+    function renderFrames(data) {
+      resultList.innerHTML = '';
+      renderVideoPreview(data);
+      data.frames.forEach(function(frame) {
+        frame.job_id = data.job_id;
+        const item = document.createElement('li');
+        item.className = 'result-item';
+        item.innerHTML =
+          '<div class="result-main">' +
+            '<div class="frame-preview">' +
+              '<img class="mini-preview" src="' + frame.preview_url + '" alt="截图 ' + frame.second + ' 秒">' +
+            '</div>' +
+            '<div class="frame-info">' +
+              '<div class="title-wrap">' +
+                '<span class="frame-title">第 ' + frame.second + ' 秒截图</span>' +
+                '<div class="preview-popup">' +
+                  '<img src="' + frame.preview_url + '" alt="截图 ' + frame.second + ' 秒">' +
+                '</div>' +
+              '</div>' +
+              '<div class="meta-line">大小：' + (frame.frame_size_text || '未知') + '</div>' +
+              '<div class="meta-line">尺寸：' + (frame.frame_resolution_text || '未知') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<button type="button" class="download-btn">保存截图</button>';
+        const downloadBtn = item.querySelector('.download-btn');
+        if (!downloadBtn) {
+          return;
+        }
+        downloadBtn.addEventListener('click', function() {
+          saveFrame(frame);
+        });
+        resultList.appendChild(item);
+      });
+    }
+
+    function uploadFile(file) {
+      if (!file) {
+        return;
+      }
+
+      setStatus('正在处理视频，请稍候...');
+      resetResults();
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+        .then(function(response) {
+          return response.json().then(function(data) {
+            if (!response.ok) {
+              throw new Error(data.error || '上传失败');
+            }
+            return data;
+          });
+        })
+        .then(function(data) {
+          setStatus('处理完成：' + data.file_name);
+          renderFrames(data);
+        })
+        .catch(function(error) {
+          setStatus(error.message, true);
+        });
+    }
+
+    clearCacheBtn.addEventListener('click', function() {
+      clearCache();
+    });
+
+    dropZone.addEventListener('click', function(event) {
+      if (hasNativeSaveApi || hasNativeApi('pick_video')) {
+        event.preventDefault();
+        pickVideoInApp();
+        return;
+      }
+
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function(event) {
+      uploadFile(event.target.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(function(eventName) {
+      dropZone.addEventListener(eventName, function(event) {
+        event.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(function(eventName) {
+      dropZone.addEventListener(eventName, function(event) {
+        event.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', function(event) {
+      const file = event.dataTransfer.files[0];
+      uploadFile(file);
+    });
+  </script>
+</body>
+</html>
