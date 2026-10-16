@@ -11,8 +11,8 @@
 
     html, body {
       width: 100%;
-      min-height: 100%;
-      overflow-x: hidden;
+      height: 100%;
+      overflow: hidden;
     }
 
     body {
@@ -36,6 +36,21 @@
       margin: 0 auto;
       padding: 40px 20px 60px;
       width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .top-panel {
+      flex: 0 0 auto;
+    }
+
+    .scroll-panel {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     h1 {
@@ -314,23 +329,27 @@
 </head>
 <body>
   <div class="page">
-    <div class="header-row">
-      <h1>视频前 10 秒截图工具</h1>
-      <div class="toolbar">
-        <button type="button" class="download-btn secondary-btn" id="clearCacheBtn">清除缓存</button>
+    <div class="top-panel">
+      <div class="header-row">
+        <h1>视频前 10 秒截图工具</h1>
+        <div class="toolbar">
+          <button type="button" class="download-btn secondary-btn" id="clearCacheBtn">清除缓存</button>
+        </div>
       </div>
+      <p class="desc">把视频拖进来，或者点击选择文件。上传后会自动截取前 10 秒的截图，并在下方提供下载按钮。</p>
+
+      <label class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="video/*">
+        <div>拖拽视频到这里</div>
+        <div class="hint">或者点击这里选择一个视频文件</div>
+      </label>
+
+      <div class="status" id="status"></div>
     </div>
-    <p class="desc">把视频拖进来，或者点击选择文件。上传后会自动截取前 10 秒的截图，并在下方提供下载按钮。</p>
-
-    <label class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="video/*">
-      <div>拖拽视频到这里</div>
-      <div class="hint">或者点击这里选择一个视频文件</div>
-    </label>
-
-    <div class="status" id="status"></div>
-    <div class="video-preview" id="videoPreview"></div>
-    <ul class="result-list" id="resultList"></ul>
+    <div class="scroll-panel">
+      <div class="video-preview" id="videoPreview"></div>
+      <ul class="result-list" id="resultList"></ul>
+    </div>
   </div>
 
   <script>

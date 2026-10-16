@@ -53,7 +53,7 @@
  [],
  False,
  False,
- 1789969121,
+ 1792036428,
  [('runw',
    '/Users/zhaohui/Desktop/myProject/MacApp/getVideoCover/.venv/lib/python3.9/site-packages/PyInstaller/bootloader/Darwin-64bit/runw',
    'EXECUTABLE')],

@@ -129,7 +129,7 @@ def extract_frames(video_path, job_id, original_filename=None):
         if not ok:
             continue
 
-        filename = "{}_{:02d}s.jpg".format(frame_base_name, second)
+        filename = "{}_{:02d}s_cover.jpg".format(frame_base_name, second)
         file_path = output_dir / filename
         cv2.imwrite(str(file_path), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
         encoded_filename = quote(filename)
